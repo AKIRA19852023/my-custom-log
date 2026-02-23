@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>カスタムログ - 何でも記録</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4a90e2">
+</head>
+
+<body>
+    <header>
+        <h1>CustomLog</h1>
+        <nav class="tabs">
+            <button class="tab-btn active" data-tab="record">記録</button>
+            <button class="tab-btn" data-tab="settings">設定</button>
+            <button class="tab-btn" data-tab="io">データ</button>
+        </nav>
+    </header>
+
+    <main>
+        <!-- 記録タブ -->
+        <section id="record-tab" class="tab-content active">
+            <div class="controls">
+                <select id="category-filter"></select>
+                <div class="search-sort">
+                    <input type="text" id="search-input" placeholder="検索...">
+                    <select id="sort-select">
+                        <option value="newest">新しい順</option>
+                        <option value="oldest">古い順</option>
+                    </select>
+                </div>
+                <button id="add-entry-btn" class="primary-btn">+ 新規記録</button>
+            </div>
+
+            <div id="entries-view" class="entries-list">
+                <!-- 記録がここに動的に追加される -->
+            </div>
+        </section>
+
+        <!-- 設定タブ -->
+        <section id="settings-tab" class="tab-content">
+            <div class="settings-container">
+                <div class="category-manager">
+                    <h2>カテゴリ管理</h2>
+                    <div class="input-group">
+                        <input type="text" id="new-category-name" placeholder="新しいカテゴリ名">
+                        <button id="add-category-btn">追加</button>
+                    </div>
+                    <ul id="category-list" class="manage-list"></ul>
+                </div>
+
+                <div class="field-manager" id="field-manager-section" style="display:none;">
+                    <h2>「<span id="target-category-name"></span>」の項目設定</h2>
+                    <div id="field-form" class="field-form card">
+                        <input type="hidden" id="edit-field-id">
+                        <div class="form-row">
+                            <label>ラベル: <input type="text" id="field-label" placeholder="店名、評価など"></label>
+                            <label>キー(英数): <input type="text" id="field-key" placeholder="store_name"></label>
+                        </div>
+                        <div class="form-row">
+                            <label>タイプ:
+                                <select id="field-type">
+                                    <option value="text">テキスト</option>
+                                    <option value="textarea">長文テキスト</option>
+                                    <option value="number">数値</option>
+                                    <option value="date">日付</option>
+                                    <option value="rating">評価(1-5)</option>
+                                    <option value="select">選択肢</option>
+                                    <option value="url">URL</option>
+                                    <option value="location">位置情報</option>
+                                </select>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="field-required"> 必須
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="field-show-in-list"> 一覧に表示
+                            </label>
+                        </div>
+                        <div id="options-row" class="form-row" style="display:none;">
+                            <label>選択肢 (カンマ区切り): <input type="text" id="field-options" placeholder="醤油,味噌,塩"></label>
+                        </div>
+                        <div class="form-actions">
+                            <button id="save-field-btn">項目を保存</button>
+                            <button id="cancel-field-btn" class="secondary-btn">キャンセル</button>
+                        </div>
+                    </div>
+                    <ul id="field-list" class="manage-list"></ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- データタブ (インポート/エクスポート) -->
+        <section id="io-tab" class="tab-content">
+            <div class="io-container card">
+                <h2>データのエクスポート</h2>
+                <p>現在のすべてのデータをJSON形式で保存します。</p>
+                <button id="export-json-btn" class="primary-btn">JSONをダウンロード</button>
+
+                <hr>
+
+                <h2>データのインポート</h2>
+                <p>JSONファイルからデータを読み込みます。</p>
+                <div class="import-actions">
+                    <input type="file" id="import-file" accept=".json">
+                    <div class="import-mode">
+                        <label><input type="radio" name="import-mode" value="overwrite" checked> 上書き</label>
+                        <label><input type="radio" name="import-mode" value="merge"> マージ</label>
+                    </div>
+                    <button id="import-json-btn">インポート実行</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- モーダル: 記録入力フォーム -->
+    <div id="entry-modal" class="modal">
+        <div class="modal-content">
+            <h2 id="entry-modal-title">新規記録</h2>
+            <form id="dynamic-entry-form">
+                <input type="hidden" id="entry-id">
+                <input type="hidden" id="entry-category-id">
+                <div id="dynamic-fields-container"></div>
+                <div class="form-actions">
+                    <button type="submit" class="primary-btn">保存</button>
+                    <button type="button" id="close-entry-modal" class="secondary-btn">閉じる</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
