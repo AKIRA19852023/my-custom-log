@@ -89,7 +89,7 @@ function initDefaultData() {
         { id: uuid(), categoryId: catRamen.id, key: 'type', label: '種類', type: 'select', options: '醤油,味噌,塩,豚骨,家系,二郎系', required: true, showInList: true, order: 2 },
         { id: uuid(), categoryId: catRamen.id, key: 'rating', label: '評価', type: 'rating', required: false, showInList: true, order: 3 },
         { id: uuid(), categoryId: catRamen.id, key: 'date', label: '日付', type: 'date', required: true, showInList: false, order: 4 },
-        { id: uuid(), categoryId: catRamen.id, key: 'memo', label: 'メモ', type: 'textarea', required: false, showInList: false, order: 5 },
+        { id: uuid(), categoryId: catRamen.id, key: 'photo', label: '写真', type: 'image', required: false, showInList: true, order: 5 },
         { id: uuid(), categoryId: catRamen.id, key: 'location', label: '場所/地図URL', type: 'location', required: false, showInList: true, order: 6 },
 
         // Sake Fields
@@ -97,7 +97,7 @@ function initDefaultData() {
         { id: uuid(), categoryId: catSake.id, key: 'prefecture', label: '産地', type: 'text', required: false, showInList: true, order: 2 },
         { id: uuid(), categoryId: catSake.id, key: 'rating', label: '評価', type: 'rating', required: false, showInList: true, order: 3 },
         { id: uuid(), categoryId: catSake.id, key: 'date', label: '日付', type: 'date', required: true, showInList: false, order: 4 },
-        { id: uuid(), categoryId: catSake.id, key: 'image_url', label: '写真URL', type: 'url', required: false, showInList: false, order: 5 },
+        { id: uuid(), categoryId: catSake.id, key: 'photo', label: '写真', type: 'image', required: false, showInList: true, order: 5 },
         { id: uuid(), categoryId: catSake.id, key: 'location', label: '場所/地図URL', type: 'location', required: false, showInList: true, order: 6 }
     ];
     saveData();
@@ -155,6 +155,13 @@ function setupEventListeners() {
     });
     document.getElementById('save-field-btn').addEventListener('click', saveField);
     document.getElementById('cancel-field-btn').addEventListener('click', resetFieldForm);
+
+    // Dynamic Entry Form Image Handling
+    document.getElementById('dynamic-entry-form').addEventListener('change', (e) => {
+        if (e.target.type === 'file' && e.target.accept.includes('image')) {
+            handleImageUpload(e.target);
+        }
+    });
 
     // IO Tab
     document.getElementById('export-json-btn').addEventListener('click', exportJSON);
@@ -348,6 +355,16 @@ function showEntryModal(entryId = null) {
             inputHtml = `
                 <input type="number" name="${f.key}" min="1" max="5" value="${val || 3}" ${f.required ? 'required' : ''}>
                 <span class="hint">(1-5)</span>
+            `;
+        } else if (f.type === 'image') {
+            inputHtml = `
+                <div class="image-input-wrap">
+                    <input type="file" accept="image/*" data-key="${f.key}" id="file-${f.id}">
+                    <input type="hidden" name="${f.key}" id="hidden-${f.key}" value="${val || ''}">
+                    <div id="preview-${f.key}" class="image-preview">
+                        ${val ? `<img src="${val}" style="max-width:100%;border-radius:8px;margin-top:5px;">` : '<small>写真を選択（アルバム/カメラ）</small>'}
+                    </div>
+                </div>
             `;
         } else if (f.type === 'location') {
             const fieldId = `loc-${f.id.replace(/[^a-zA-Z0-9]/g, '')}`;
@@ -544,6 +561,9 @@ function renderEntries() {
 
 function renderFieldValue(field, val) {
     if (!val) return '-';
+    if (field.type === 'image') {
+        return `<img src="${val}" style="max-width:100px;max-height:100px;border-radius:4px;cursor:pointer;" onclick="window.open('${val}')">`;
+    }
     if (field.type === 'rating') {
         return `<span class="rating-stars">${'★'.repeat(val)}${'☆'.repeat(5 - val)}</span>`;
     }
@@ -555,6 +575,55 @@ function renderFieldValue(field, val) {
         return `<a href="https://www.google.com/maps/search/?api=1&query=${val}" target="_blank" rel="noopener">地図</a>`;
     }
     return val;
+}
+
+async function handleImageUpload(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const key = input.dataset.key;
+    const preview = document.getElementById(`preview-${key}`);
+    const hidden = document.getElementById(`hidden-${key}`);
+
+    preview.innerHTML = '<small>処理中...</small>';
+
+    try {
+        const base64 = await resizeAndConvertImage(file);
+        hidden.value = base64;
+        preview.innerHTML = `<img src="${base64}" style="max-width:100%;border-radius:8px;margin-top:5px;">`;
+    } catch (err) {
+        alert('画像の読み込みに失敗しました');
+        preview.innerHTML = '<small>選択に失敗しました</small>';
+    }
+}
+
+function resizeAndConvertImage(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (e) => {
+            const img = new Image();
+            img.src = e.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 800;
+                let width = img.width;
+                let height = img.height;
+
+                if (width > MAX_WIDTH) {
+                    height *= MAX_WIDTH / width;
+                    width = MAX_WIDTH;
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL('image/jpeg', 0.7)); // 品質0.7で保存
+            };
+        };
+        reader.onerror = reject;
+    });
 }
 
 window.deleteEntry = (id) => {
