@@ -67,6 +67,30 @@ function upgradeExistingData() {
             });
             changed = true;
         }
+
+        // --- 写真フィールドのアップグレード ---
+        const oldPhotoUrlField = fields.find(f => (f.key === 'image_url' || f.key === 'photo_url') && f.type === 'url');
+        const hasImageField = fields.some(f => f.type === 'image');
+
+        if (oldPhotoUrlField && !hasImageField) {
+            oldPhotoUrlField.type = 'image';
+            oldPhotoUrlField.label = '写真';
+            oldPhotoUrlField.key = 'photo';
+            changed = true;
+        } else if (!hasImageField) {
+            const order = fields.length + 1;
+            db.fields.push({
+                id: uuid(),
+                categoryId: cat.id,
+                key: 'photo',
+                label: '写真',
+                type: 'image',
+                required: false,
+                showInList: true,
+                order
+            });
+            changed = true;
+        }
     });
 
     if (changed) {
@@ -358,11 +382,17 @@ function showEntryModal(entryId = null) {
             `;
         } else if (f.type === 'image') {
             inputHtml = `
-                <div class="image-input-wrap">
-                    <input type="file" accept="image/*" data-key="${f.key}" id="file-${f.id}">
+                <div class="image-input-container" onclick="document.getElementById('file-${f.id}').click()" style="border: 2px dashed #ccc; border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; background: #f9f9f9;">
+                    <input type="file" accept="image/*" data-key="${f.key}" id="file-${f.id}" style="display:none">
                     <input type="hidden" name="${f.key}" id="hidden-${f.key}" value="${val || ''}">
                     <div id="preview-${f.key}" class="image-preview">
-                        ${val ? `<img src="${val}" style="max-width:100%;border-radius:8px;margin-top:5px;">` : '<small>写真を選択（アルバム/カメラ）</small>'}
+                        ${val ? `<img src="${val}" style="max-width:100%; border-radius:8px;">` : `
+                            <div style="color: #666;">
+                                <div style="font-size: 2rem; margin-bottom: 5px;">📸</div>
+                                <div>タップして写真を選択</div>
+                                <small>(アルバムまたはカメラ)</small>
+                            </div>
+                        `}
                     </div>
                 </div>
             `;
